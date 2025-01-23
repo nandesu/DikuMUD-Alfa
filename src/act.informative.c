@@ -997,37 +997,34 @@ void do_who(struct char_data *ch, char *argument, int cmd)
 }
 
 
-
-
 void do_users(struct char_data *ch, char *argument, int cmd)
 {
-	char buf[MAX_STRING_LENGTH], line[200];
+    char buf[MAX_STRING_LENGTH], line[200];
+    struct descriptor_data *d;
 
-	struct descriptor_data *d;
+    strcpy(buf, "Connections:\n\r------------\n\r");
 
-	strcpy(buf, "Connections:\n\r------------\n\r");
-	
-	for (d = descriptor_list; d; d = d->next)
-	{
-		if (d->character && d->character->player.name)
-		{
-		if(d->original)
-			sprintf(line, "%-16s: ", d->original->player.name);
-		else
-			sprintf(line, "%-16s: ", d->character->player.name);
-		}
-		else
-			strcpy(line, "UNDEFINED       : ");
-		if ((d->host) && *(d->host))
-			sprintf(line + strlen(line), "[%s]\n\r", d->host);
-		else
-			strcat(line, "[Hostname unknown]\n\r");
+    for (d = descriptor_list; d; d = d->next) {
+        if (d->character && d->character->player.name) {
+            if (d->original) {
+                sprintf(line, "%-16s: ", d->original->player.name);
+            } else {
+                sprintf(line, "%-16s: ", d->character->player.name);
+            }
+        } else {
+            strcpy(line, "UNDEFINED       : ");
+        }
 
-		strcat(buf, line);
-	}
-	send_to_char(buf, ch);
+        if (*(d->host)) {
+            sprintf(line + strlen(line), "[%s]\n\r", d->host);
+        } else {
+            strcat(line, "[Hostname unknown]\n\r");
+        }
+
+        strcat(buf, line);
+    }
+    send_to_char(buf, ch);
 }
-
 
 
 void do_inventory(struct char_data *ch, char *argument, int cmd) {
