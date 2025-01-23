@@ -25,12 +25,12 @@
 #include <time.h>
 
 
-#include "structs.h"
-#include "utils.h"
-#include "comm.h"
-#include "interpreter.h"
-#include "handler.h"
-#include "db.h"
+#include "include/structs.h"
+#include "include/utils.h"
+#include "include/comm.h"
+#include "include/interpreter.h"
+#include "include/handler.h"
+#include "include/db.h"
 
 #define DFLT_PORT 4000        /* default port */
 #define MAX_NAME_LENGTH 15
@@ -148,7 +148,7 @@ int main(int argc, char **argv)
 		pos++;
 	}
 	
-	if (pos < argc)
+	if (pos < argc) {
 		if (!isdigit(*argv[pos]))
 		{
 			fprintf(stderr, "Usage: %s [-l] [-s] [-d pathname] [ port # ]\n", 
@@ -160,7 +160,7 @@ int main(int argc, char **argv)
 			printf("Illegal port #\n");
 			exit(0);
 		}
-
+        }
 	sprintf(buf, "Running game on port %d.", port);
 	slog(buf);
 
@@ -186,53 +186,50 @@ int main(int argc, char **argv)
 
 
 /* Init sockets, run game, and cleanup sockets */
+/* Init sockets, run game, and cleanup sockets */
 int run_the_game(int port)
 {
-	int s; 
-	PROFILE(extern etext();)
+    int s;
+    PROFILE(extern etext();)
 
-	void signal_setup(void);
-	int load(void);
-	void coma(int);
+    void signal_setup(void);
+    int load(void);
+    void coma(int);
 
-	PROFILE(monstartup((int) 2, etext);)
+    PROFILE(monstartup((int) 2, etext);)
 
-	descriptor_list = NULL;
+    descriptor_list = NULL;
 
-	slog("Signal trapping.");
-	signal_setup();
+    slog("Signal trapping.");
+    signal_setup();
 
-	slog("Opening mother connection.");
-	s = init_socket(port);
+    slog("Opening mother connection.");
+    s = init_socket(port);
 
-	if (lawful && load() >= 6)
-	{
-		slog("System load too high at startup.");
-		coma(s);
-	}
+    if (lawful && load() >= 6) {
+        slog("System load too high at startup.");
+        coma(s);
+    }
 
-	boot_db();
+    boot_db();
 
-	slog("Entering game loop.");
+    slog("Entering game loop.");
 
-	game_loop(s);
+    game_loop(s);
 
-	close_sockets(s); 
+    close_sockets(s);
 
-	PROFILE(monitor(0);)
+    PROFILE(monitor(0);)
 
-	if (reboot)
-	{
-		slog("Rebooting.");
-		exit(52);            /* what's so great about HHGTTG, anyhow? */
-	}
+    if (reboot) {
+        slog("Rebooting.");
+        exit(52);  /* what's so great about HHGTTG, anyhow? */
+    }
 
-	slog("Normal termination of game.");
+    slog("Normal termination of game.");
+
+    return 0;  // Ensure the function returns a value
 }
-
-
-
-
 
 
 /* Accept new connects, relay commands, and call 'heartbeat-functs' */
@@ -244,7 +241,9 @@ int game_loop(int s)
 	static struct timeval opt_time;
 	char comm[MAX_INPUT_LENGTH];
 	struct descriptor_data *t, *point, *next_point;
-	int pulse = 0, mask;
+//	int pulse = 0, mask;
+        int pulse = 0, old_mask;
+
 
 	null_time.tv_sec = 0;
 	null_time.tv_usec = 0;
@@ -256,10 +255,18 @@ int game_loop(int s)
 	maxdesc = s;
 	avail_descs = getdtablesize() - 2; /* !! Change if more needed !! */
 
-	mask = sigmask(SIGUSR1) | sigmask(SIGUSR2) | sigmask(SIGINT) |
-		sigmask(SIGPIPE) | sigmask(SIGALRM) | sigmask(SIGTERM) |
-		sigmask(SIGURG) | sigmask(SIGXCPU) | sigmask(SIGHUP) |
-		sigmask(SIGVTALRM);
+        sigset_t mask;
+        sigemptyset(&mask);
+        sigaddset(&mask, SIGUSR1);
+        sigaddset(&mask, SIGUSR2);
+        sigaddset(&mask, SIGINT);
+        sigaddset(&mask, SIGPIPE);
+        sigaddset(&mask, SIGALRM);
+        sigaddset(&mask, SIGTERM);
+        sigaddset(&mask, SIGURG);
+        sigaddset(&mask, SIGXCPU);
+        sigaddset(&mask, SIGHUP);
+        sigaddset(&mask, SIGVTALRM);
 
 	/* Main loop */
 	while (!shutting_down)
@@ -288,7 +295,12 @@ int game_loop(int s)
 			last_time.tv_sec++;
 		}
 
-		sigsetmask(mask);
+//		sigsetmask(mask);
+// Use sigprocmask instead of sigsetmask
+if (sigprocmask(SIG_SETMASK, &mask, NULL) != 0) {
+    perror("sigprocmask");
+    exit(EXIT_FAILURE);
+}
 
 		if (select(maxdesc + 1, &input_set, &output_set, &exc_set, &null_time) 
 			< 0)
@@ -303,7 +315,12 @@ int game_loop(int s)
 			exit(1);
 		}
 
-		sigsetmask(0);
+//		sigsetmask(0);
+// Use sigprocmask instead of sigsetmask
+if (sigprocmask(SIG_SETMASK, &mask, NULL) != 0) {
+    perror("sigprocmask");
+    exit(EXIT_FAILURE);
+}
 
 		/* Respond to whatever might be happening */
 		
@@ -369,37 +386,37 @@ int game_loop(int s)
 		}
 
 
-		for (point = descriptor_list; point; point = next_point) 
-		{
-			next_point = point->next;
-			if (FD_ISSET(point->descriptor, &output_set) && point->output.head)
-				if (process_output(point) < 0)
-					close_socket(point);
-				else
-					point->prompt_mode = 1;
- 		}
+for (point = descriptor_list; point; point = next_point) {
+    next_point = point->next;
+    if (FD_ISSET(point->descriptor, &output_set) && point->output.head) {
+        if (process_output(point) < 0) {
+            close_socket(point);
+        } else {
+            point->prompt_mode = 1;
+        }
+    }
+}
 
-		/* give the people some prompts */
-		for (point = descriptor_list; point; point = point->next)
-			if (point->prompt_mode)
-			{
-				if (point->str)
-					write_to_descriptor(point->descriptor, "] ");
-				else if (!point->connected)
-					if (point->showstr_point)
-						write_to_descriptor(point->descriptor,
-							"*** Press return ***");
-					else					
-						write_to_descriptor(point->descriptor, "> ");
-				point->prompt_mode = 0;
-			}
+/* give the people some prompts */
+for (point = descriptor_list; point; point = point->next) {
+    if (point->prompt_mode) {
+        if (point->str) {
+            write_to_descriptor(point->descriptor, "] ");
+        } else if (!point->connected) {
+            if (point->showstr_point) {
+                write_to_descriptor(point->descriptor, "*** Press return ***");
+            } else {
+                write_to_descriptor(point->descriptor, "> ");
+            }
+        }
+        point->prompt_mode = 0;
+    }
+}
 
+/* handle heartbeat stuff */
+/* Note: pulse now changes every 1/4 sec  */
 
-
-		/* handle heartbeat stuff */
-		/* Note: pulse now changes every 1/4 sec  */
-
-		pulse++;
+pulse++;
 
 		if (!(pulse % PULSE_ZONE))
 		{
@@ -432,6 +449,7 @@ int game_loop(int s)
 
 		tics++;        /* tics since last checkpoint signal */
 	}
+    return 0;
 }
 
 
@@ -590,126 +608,103 @@ int init_socket(int port)
 }
 
 
-
-
-
 int new_connection(int s)
 {
-	struct sockaddr_in isa;
-	/* struct sockaddr peer; */
-	int i;
-	int t;
-	char buf[100];
+    struct sockaddr_in isa;
+    /* struct sockaddr peer; */
+    socklen_t i;  // Change int to socklen_t
+    int t;
+    char buf[100];
 
-	i = sizeof(isa);
-	getsockname(s, (struct sockaddr *) &isa, &i);
+    i = sizeof(isa);
+    getsockname(s, (struct sockaddr *) &isa, &i);
 
+    if ((t = accept(s, (struct sockaddr *) &isa, &i)) < 0) {
+        perror("Accept");
+        return(-1);
+    }
+    nonblock(t);
 
-	if ((t = accept(s, (struct sockaddr *) &isa, &i)) < 0)
-	{
-		perror("Accept");
-		return(-1);
-	}
-	nonblock(t);
+    /*
+    i = sizeof(peer);
+    if (!getpeername(t, &peer, &i)) {
+        *(peer.sa_data + 49) = '\0';
+        sprintf(buf, "New connection from addr %s.\n", peer.sa_data);
+        slog(buf);
+    }
+    */
 
-	/*
-
-	i = sizeof(peer);
-	if (!getpeername(t, &peer, &i))
-	{
-		*(peer.sa_data + 49) = '\0';
-		sprintf(buf, "New connection from addr %s.\n", peer.sa_data);
-		slog(buf);
-	}
-
-	*/
-
-	return(t);
+    return(t);
 }
-
-
-
 
 
 int new_descriptor(int s)
 {
-	int desc;
-	struct descriptor_data *newd;
-	int size;
-	struct sockaddr_in sock;
-	struct hostent *from;
-	char buf[10];
+    int desc;
+    struct descriptor_data *newd;
+    socklen_t size;  // Change int to socklen_t
+    struct sockaddr_in sock;
+    struct hostent *from;
+    char buf[10];
 
-	if ((desc = new_connection(s)) < 0)
-		return (-1);
+    if ((desc = new_connection(s)) < 0) {
+        return (-1);
+    }
 
-	if (wizlock)
-	{
-		write_to_descriptor(desc, "The game is wizlocked...");
-		close(desc);
-		return(0);
-	}
+    if (wizlock) {
+        write_to_descriptor(desc, "The game is wizlocked...");
+        close(desc);
+        return (0);
+    }
 
-	if ((desc + 1) >= avail_descs)
-	{
-		write_to_descriptor(desc, "Sorry.. The game is full...\n\r");
-		close(desc);
-		return(0);
-	}
-	else
-		if (desc > maxdesc)
-			maxdesc = desc;
+    if ((desc + 1) >= avail_descs) {
+        write_to_descriptor(desc, "Sorry.. The game is full...\n\r");
+        close(desc);
+        return (0);
+    } else if (desc > maxdesc) {
+        maxdesc = desc;
+    }
 
-	CREATE(newd, struct descriptor_data, 1);
+    CREATE(newd, struct descriptor_data, 1);
 
-	/* find info */
-	size = sizeof(sock);
-	if (getpeername(desc, (struct sockaddr *) &sock, &size) < 0)
-	{
-		perror("getpeername");
-		*newd->host = '\0';
-	}
-	else if (!(from = gethostbyaddr((char*)&sock.sin_addr,
-		sizeof(sock.sin_addr), AF_INET)))
-	{
-		strcpy(newd->host, inet_ntoa(sock.sin_addr));
-	}
-	else
-	{
-		strncpy(newd->host, from->h_name, 49);
-		*(newd->host + 49) = '\0';
-	}
-		
-	
-	/* init desc data */
-	newd->descriptor = desc;
-	newd->connected  = 1;
-	newd->wait = 1;
-	newd->prompt_mode = 0;
-	*newd->buf = '\0';
-	newd->str = 0;
-	newd->showstr_head = 0;
-	newd->showstr_point = 0;
-	*newd->last_input= '\0';
-	newd->output.head = NULL;
-	newd->input.head = NULL;
-	newd->next = descriptor_list;
-	newd->character = 0;
-	newd->original = 0;
-	newd->snoop.snooping = 0;
-	newd->snoop.snoop_by = 0;
+    /* find info */
+    size = sizeof(sock);
+    if (getpeername(desc, (struct sockaddr *) &sock, &size) < 0) {
+        perror("getpeername");
+        *newd->host = '\0';
+    } else if (!(from = gethostbyaddr((char*)&sock.sin_addr, sizeof(sock.sin_addr), AF_INET))) {
+        strcpy(newd->host, inet_ntoa(sock.sin_addr));
+    } else {
+        strncpy(newd->host, from->h_name, 49);
+        *(newd->host + 49) = '\0';
+    }
 
-	/* prepend to list */
+    /* init desc data */
+    newd->descriptor = desc;
+    newd->connected = 1;
+    newd->wait = 1;
+    newd->prompt_mode = 0;
+    *newd->buf = '\0';
+    newd->str = 0;
+    newd->showstr_head = 0;
+    newd->showstr_point = 0;
+    *newd->last_input = '\0';
+    newd->output.head = NULL;
+    newd->input.head = NULL;
+    newd->next = descriptor_list;
+    newd->character = 0;
+    newd->original = 0;
+    newd->snoop.snooping = 0;
+    newd->snoop.snoop_by = 0;
 
-	descriptor_list = newd;
+    /* prepend to list */
+    descriptor_list = newd;
 
-	SEND_TO_Q(GREETINGS, newd);
-	SEND_TO_Q("By what name do you wish to be known? ", newd);
+    SEND_TO_Q(GREETINGS, newd);
+    SEND_TO_Q("By what name do you wish to be known? ", newd);
 
-	return(0);
+    return (0);
 }
-	
-
 
 
 
@@ -980,63 +975,66 @@ Please try again later.\n\r\n\
 /* sleep while the load is too high */
 void coma(int s)
 {
-	fd_set input_set;
-	static struct timeval timeout =
-	{
-		60, 
-		0
-	};
-	int conn;
+    fd_set input_set;
+    static struct timeval timeout = {60, 0};
+    int conn;
 
-	int workhours(void);
-	int load(void);
+    int workhours(void);
+    int load(void);
 
-	slog("Entering comatose state.");
+    slog("Entering comatose state.");
 
-	sigsetmask(sigmask(SIGUSR1) | sigmask(SIGUSR2) | sigmask(SIGINT) |
-		sigmask(SIGPIPE) | sigmask(SIGALRM) | sigmask(SIGTERM) |
-		sigmask(SIGURG) | sigmask(SIGXCPU) | sigmask(SIGHUP) |
-		sigmask(SIGVTALRM));
+    sigset_t mask;
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGUSR1);
+    sigaddset(&mask, SIGUSR2);
+    sigaddset(&mask, SIGINT);
+    sigaddset(&mask, SIGPIPE);
+    sigaddset(&mask, SIGALRM);
+    sigaddset(&mask, SIGTERM);
+    sigaddset(&mask, SIGURG);
+    sigaddset(&mask, SIGXCPU);
+    sigaddset(&mask, SIGHUP);
+    sigaddset(&mask, SIGVTALRM);
 
-	while (descriptor_list)
-		close_socket(descriptor_list);
+    if (sigprocmask(SIG_SETMASK, &mask, NULL) != 0) {
+        perror("sigprocmask");
+        exit(EXIT_FAILURE);
+    }
 
-	FD_ZERO(&input_set);
-	do
-	{
-		FD_SET(s, &input_set);
-		if (select(64, &input_set, 0, 0, &timeout) < 0)
-		{
-			perror("coma select");
-			exit(1);
-		}
-		if (FD_ISSET(s, &input_set))
-		{
-			if (load() < 6)
-			{
-				slog("Leaving coma with visitor.");
-				sigsetmask(0);
-				return;
-			}
-			if ((conn = new_connection(s)) >= 0)
-			{
-				write_to_descriptor(conn, COMA_SIGN);
-				sleep(2);
-				close(conn);
-			}
-		}			
+    while (descriptor_list) {
+        close_socket(descriptor_list);
+    }
 
-		tics = 1;
-		if (workhours())
-		{
-			slog("Working hours collision during coma. Exit.");
-			exit(0);
-		}
-	}
-	while (load() >= 6);
+    FD_ZERO(&input_set);
+    do {
+        FD_SET(s, &input_set);
+        if (select(64, &input_set, 0, 0, &timeout) < 0) {
+            perror("coma select");
+            exit(1);
+        }
+        if (FD_ISSET(s, &input_set)) {
+            if (load() < 6) {
+                slog("Leaving coma with visitor.");
+                sigprocmask(SIG_SETMASK, NULL, NULL);
+                return;
+            }
+            if ((conn = new_connection(s)) >= 0) {
+                write_to_descriptor(conn, COMA_SIGN);
+                sleep(2);
+                close(conn);
+            }
+        }
 
-	slog("Leaving coma.");
-	sigsetmask(0);
+        tics = 1;
+        if (workhours()) {
+            slog("Working hours collision during coma. Exit.");
+            exit(0);
+        }
+    } while (load() >= 6);
+
+    slog("Leaving coma.");
+    sigprocmask(SIG_SETMASK, NULL, NULL);
 }
 
 
@@ -1130,73 +1128,76 @@ void send_to_room_except_two
 
 /* higher-level communication */
 
-
 void act(char *str, int hide_invisible, struct char_data *ch,
-	struct obj_data *obj, void *vict_obj, int type)
+        struct obj_data *obj, void *vict_obj, int type)
 {
-	register char *strp, *point, *i = NULL;
-	struct char_data *to;
-	char buf[MAX_STRING_LENGTH];
+    register char *strp, *point, *i = NULL;
+    struct char_data *to;
+    char buf[MAX_STRING_LENGTH];
 
-	if (!str)
-		return;
-	if (!*str)
-		return;
+    if (!str) {
+        return;
+    }
+    if (!*str) {
+        return;
+    }
 
-	if (type == TO_VICT)
-		to = (struct char_data *) vict_obj;
-	else if (type == TO_CHAR)
-		to = ch;
-	else
-		to = world[ch->in_room].people;
+    if (type == TO_VICT) {
+        to = (struct char_data *) vict_obj;
+    } else if (type == TO_CHAR) {
+        to = ch;
+    } else {
+        to = world[ch->in_room].people;
+    }
 
-	for (; to; to = to->next_in_room)
-	{
-		if (to->desc && ((to != ch) || (type == TO_CHAR)) &&  
-			(CAN_SEE(to, ch) || !hide_invisible) && AWAKE(to) &&
-			!((type == TO_NOTVICT) && (to == (struct char_data *) vict_obj)))
-		{
-			for (strp = str, point = buf;;)
-				if (*strp == '$')
-				{
-					switch (*(++strp))
-					{
-						case 'n': i = PERS(ch, to); break;
-						case 'N': i = PERS((struct char_data *) vict_obj, to); break;
-						case 'm': i = HMHR(ch); break;
-						case 'M': i = HMHR((struct char_data *) vict_obj); break;
-						case 's': i = HSHR(ch); break;
-						case 'S': i = HSHR((struct char_data *) vict_obj); break;
-						case 'e': i = HSSH(ch); break;
-						case 'E': i = HSSH((struct char_data *) vict_obj); break;
-						case 'o': i = OBJN(obj, to); break;
-						case 'O': i = OBJN((struct obj_data *) vict_obj, to); break;
-						case 'p': i = OBJS(obj, to); break;
-						case 'P': i = OBJS((struct obj_data *) vict_obj, to); break;
-						case 'a': i = SANA(obj); break;
-						case 'A': i = SANA((struct obj_data *) vict_obj); break;
-						case 'T': i = (char *) vict_obj; break;
-						case 'F': i = fname((char *) vict_obj); break;
-						case '$': i = "$"; break;
-						default:
-							slog("Illegal $-code to act():");
-							slog(str);
-							break;
-					}
-					while (*point = *(i++))
-						++point;
-					++strp;
-				}
-				else if (!(*(point++) = *(strp++)))
-					break;
+    for (; to; to = to->next_in_room) {
+        if (to->desc && ((to != ch) || (type == TO_CHAR)) &&
+            (CAN_SEE(to, ch) || !hide_invisible) && AWAKE(to) &&
+            !((type == TO_NOTVICT) && (to == (struct char_data *) vict_obj))) {
+            for (strp = str, point = buf;;) {
+                if (*strp == '$') {
+                    switch (*(++strp)) {
+                        case 'n': i = PERS(ch, to); break;
+                        case 'N': i = PERS((struct char_data *) vict_obj, to); break;
+                        case 'm': i = HMHR(ch); break;
+                        case 'M': i = HMHR((struct char_data *) vict_obj); break;
+                        case 's': i = HSHR(ch); break;
+                        case 'S': i = HSHR((struct char_data *) vict_obj); break;
+                        case 'e': i = HSSH(ch); break;
+                        case 'E': i = HSSH((struct char_data *) vict_obj); break;
+                        case 'o': i = OBJN(obj, to); break;
+                        case 'O': i = OBJN((struct obj_data *) vict_obj, to); break;
+                        case 'p': i = OBJS(obj, to); break;
+                        case 'P': i = OBJS((struct obj_data *) vict_obj, to); break;
+                        case 'a': i = SANA(obj); break;
+                        case 'A': i = SANA((struct obj_data *) vict_obj); break;
+                        case 'T': i = (char *) vict_obj; break;
+                        case 'F': i = fname((char *) vict_obj); break;
+                        case '$': i = "$"; break;
+                        default:
+                            slog("Illegal $-code to act():");
+                            slog(str);
+                            break;
+                    }
+                    while ((*point = *(i++))) {
+                        ++point;
+                    }
+                    ++strp;
+                } else if (!(*(point++) = *(strp++))) {
+                    break;
+                }
+            }
 
-			*(--point) = '\n';
-			*(++point) = '\r';
-			*(++point) = '\0';
+            *(--point) = '\n';
+            *(++point) = '\r';
+            *(++point) = '\0';
 
-			write_to_q(CAP(buf), &to->desc->output);
-		}
-		if ((type == TO_VICT) || (type == TO_CHAR))
-			return;
-	}
+            write_to_q(CAP(buf), &to->desc->output);
+        }
+        if ((type == TO_VICT) || (type == TO_CHAR)) {
+            return;
+        }
+    }
 }
+
+/* EOF: comm.c */

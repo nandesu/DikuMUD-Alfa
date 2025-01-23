@@ -9,14 +9,14 @@
 #include <ctype.h>
 #include <time.h>
 
-#include "structs.h"
-#include "utils.h"
-#include "comm.h"
-#include "interpreter.h"
-#include "handler.h"
-#include "db.h"
-#include "spells.h"
-#include "limits.h"
+#include "include/structs.h"
+#include "include/utils.h"
+#include "include/comm.h"
+#include "include/interpreter.h"
+#include "include/handler.h"
+#include "include/db.h"
+#include "include/spells.h"
+#include "include/limits.h"
 
 /* extern variables */
 
@@ -683,42 +683,44 @@ void do_examine(struct char_data *ch, char *argument, int cmd)
 	}
 }
 
-
-
 void do_exits(struct char_data *ch, char *argument, int cmd)
 {
-	int door;
-	char buf[MAX_STRING_LENGTH];
-	char *exits[] =
-	{	
-		"North",
-		"East ",
-		"South",
-		"West ",
-		"Up   ",
-		"Down "
-	};
+    int door;
+    char buf[MAX_STRING_LENGTH];
+    char *exits[] =
+    {
+        "North",
+        "East ",
+        "South",
+        "West ",
+        "Up   ",
+        "Down "
+    };
 
-	*buf = '\0';
+    *buf = '\0';
 
-	for (door = 0; door <= 5; door++)
-		if (EXIT(ch, door))
-			if (EXIT(ch, door)->to_room != NOWHERE &&
-			    !IS_SET(EXIT(ch, door)->exit_info, EX_CLOSED))
-				if (IS_DARK(EXIT(ch, door)->to_room))
-					sprintf(buf + strlen(buf), "%s - Too dark to tell\n\r", exits[door]);
-				else
-					sprintf(buf + strlen(buf), "%s - %s\n\r", exits[door],
-						world[EXIT(ch, door)->to_room].name);
+    for (door = 0; door <= 5; door++) {
+        if (EXIT(ch, door)) {
+            if (EXIT(ch, door)->to_room != NOWHERE &&
+                !IS_SET(EXIT(ch, door)->exit_info, EX_CLOSED)) {
+                if (IS_DARK(EXIT(ch, door)->to_room)) {
+                    sprintf(buf + strlen(buf), "%s - Too dark to tell\n\r", exits[door]);
+                } else {
+                    sprintf(buf + strlen(buf), "%s - %s\n\r", exits[door],
+                            world[EXIT(ch, door)->to_room].name);
+                }
+            }
+        }
+    }
 
-	send_to_char("Obvious exits:\n\r", ch);
+    send_to_char("Obvious exits:\n\r", ch);
 
-	if (*buf)
-		send_to_char(buf, ch);
-	else
-		send_to_char("None.\n\r", ch);
+    if (*buf) {
+        send_to_char(buf, ch);
+    } else {
+        send_to_char("None.\n\r", ch);
+    }
 }
-
 
 void do_score(struct char_data *ch, char *argument, int cmd)
 {
