@@ -2,3 +2,4 @@ lib/players
 lib/board.messages
 lib/pcobjs.obj
 src/*.o
+src/libgame.a
