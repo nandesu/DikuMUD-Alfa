@@ -6,13 +6,13 @@
 
 #include <stdio.h>
 
-#include "structs.h"
-#include "utils.h"
-#include "comm.h"
-#include "db.h"
-#include "interpreter.h"
-#include "spells.h"
-#include "handler.h"
+#include "include/structs.h"
+#include "include/utils.h"
+#include "include/comm.h"
+#include "include/db.h"
+#include "include/interpreter.h"
+#include "include/spells.h"
+#include "include/handler.h"
 
 
 /* Global data */

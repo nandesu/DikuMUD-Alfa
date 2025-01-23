@@ -8,13 +8,13 @@
 #include <string.h>
 #include <assert.h>
 
-#include "structs.h"
-#include "utils.h"
-#include "comm.h"
-#include "handler.h"
-#include "interpreter.h"
-#include "db.h"
-#include "spells.h"
+#include "include/structs.h"
+#include "include/utils.h"
+#include "include/comm.h"
+#include "include/handler.h"
+#include "include/interpreter.h"
+#include "include/db.h"
+#include "include/spells.h"
 
 /* Structures */
 
@@ -494,181 +494,187 @@ void dam_message(int dam, struct char_data *ch, struct char_data *victim,
 	}
 }
 
+void damage(struct char_data *ch, struct char_data *victim, int dam, int attacktype) {
+    char buf[MAX_STRING_LENGTH];
+    struct message_type *messages;
+    int i, j, nr, max_hit, exp;
 
+    int hit_limit(struct char_data *ch);
 
-void damage(struct char_data *ch, struct char_data *victim,
-            int dam, int attacktype)
-{
-	char buf[MAX_STRING_LENGTH];
-	struct message_type *messages;
-	int i,j,nr,max_hit,exp;
+    assert(GET_POS(victim) > POSITION_DEAD);
 
-	int hit_limit(struct char_data *ch);
+    if ((GET_LEVEL(victim) > 20) && !IS_NPC(victim)) /* You can't damage an immortal! */
+        dam = 0;
 
-	assert(GET_POS(victim) > POSITION_DEAD);
+    if (victim != ch) {
+        if (GET_POS(victim) > POSITION_STUNNED) {
+            if (!(victim->specials.fighting)) {
+                set_fighting(victim, ch);
+            }
+            GET_POS(victim) = POSITION_FIGHTING;
+        }
 
-	if ((GET_LEVEL(victim)>20) && !IS_NPC(victim)) /* You can't damage an immortal! */
-		dam=0;
-		
-	if (victim != ch) {
-		if (GET_POS(victim) > POSITION_STUNNED) {
-			if (!(victim->specials.fighting))
-				set_fighting(victim, ch);
-			GET_POS(victim) = POSITION_FIGHTING;
-		}
+        if (GET_POS(ch) > POSITION_STUNNED) {
+            if (!(ch->specials.fighting)) {
+                set_fighting(ch, victim);
+            }
 
-		if (GET_POS(ch) > POSITION_STUNNED) {
-			if (!(ch->specials.fighting))
-				set_fighting(ch, victim);
+            if (IS_NPC(ch) && IS_NPC(victim) && victim->master &&
+                !number(0, 10) && IS_AFFECTED(victim, AFF_CHARM) &&
+                (victim->master->in_room == ch->in_room)) {
+                if (ch->specials.fighting) {
+                    stop_fighting(ch);
+                }
+                hit(ch, victim->master, TYPE_UNDEFINED);
+                return;
+            }
+        }
+    }
 
-			if (IS_NPC(ch) && IS_NPC(victim) &&
-          victim->master &&
-			    !number(0,10) && IS_AFFECTED(victim, AFF_CHARM) &&
-			    (victim->master->in_room == ch->in_room)) {
-				if (ch->specials.fighting)
-					stop_fighting(ch);
-				hit(ch, victim->master, TYPE_UNDEFINED);
-				return;
-			}
-		}
-	}
+    if (victim->master == ch) {
+        stop_follower(victim);
+    }
 
-	if (victim->master == ch)
-		stop_follower(victim);
-			
-	if (IS_AFFECTED(ch, AFF_INVISIBLE))
-		appear(ch);
+    if (IS_AFFECTED(ch, AFF_INVISIBLE)) {
+        appear(ch);
+    }
 
-	if (IS_AFFECTED(victim, AFF_SANCTUARY))
-		dam = MIN(dam, 18);  /* Max 18 damage when sanctuary */
+    if (IS_AFFECTED(victim, AFF_SANCTUARY)) {
+        dam = MIN(dam, 18);  /* Max 18 damage when sanctuary */
+    }
 
-	dam=MIN(dam,100);
+    dam = MIN(dam, 100);
+    dam = MAX(dam, 0);
 
-	dam=MAX(dam,0);
+    GET_HIT(victim) -= dam;
 
-	GET_HIT(victim)-=dam;
+    if (ch != victim) {
+        gain_exp(ch, GET_LEVEL(victim) * dam);
+    }
 
-	if (ch != victim)
-		gain_exp(ch,GET_LEVEL(victim)*dam);
+    update_pos(victim);
 
-	update_pos(victim);
+    if ((attacktype >= TYPE_HIT) && (attacktype <= TYPE_SLASH)) {
+        if (!ch->equipment[WIELD]) {
+            dam_message(dam, ch, victim, TYPE_HIT);
+        } else {
+            dam_message(dam, ch, victim, attacktype);
+        }
+    } else {
+        for (i = 0; i < MAX_MESSAGES; i++) {
+            if (fight_messages[i].a_type == attacktype) {
+                nr = dice(1, fight_messages[i].number_of_attacks);
+                for (j = 1, messages = fight_messages[i].msg; (j < nr) && (messages); j++) {
+                    messages = messages->next;
+                }
 
+                if (!IS_NPC(victim) && (GET_LEVEL(victim) > 20)) {
+                    act(messages->god_msg.attacker_msg, FALSE, ch, ch->equipment[WIELD], victim, TO_CHAR);
+                    act(messages->god_msg.victim_msg, FALSE, ch, ch->equipment[WIELD], victim, TO_VICT);
+                    act(messages->god_msg.room_msg, FALSE, ch, ch->equipment[WIELD], victim, TO_NOTVICT);
+                } else if (dam != 0) {
+                    if (GET_POS(victim) == POSITION_DEAD) {
+                        act(messages->die_msg.attacker_msg, FALSE, ch, ch->equipment[WIELD], victim, TO_CHAR);
+                        act(messages->die_msg.victim_msg, FALSE, ch, ch->equipment[WIELD], victim, TO_VICT);
+                        act(messages->die_msg.room_msg, FALSE, ch, ch->equipment[WIELD], victim, TO_NOTVICT);
+                    } else {
+                        act(messages->hit_msg.attacker_msg, FALSE, ch, ch->equipment[WIELD], victim, TO_CHAR);
+                        act(messages->hit_msg.victim_msg, FALSE, ch, ch->equipment[WIELD], victim, TO_VICT);
+                        act(messages->hit_msg.room_msg, FALSE, ch, ch->equipment[WIELD], victim, TO_NOTVICT);
+                    }
+                } else { /* Dam == 0 */
+                    act(messages->miss_msg.attacker_msg, FALSE, ch, ch->equipment[WIELD], victim, TO_CHAR);
+                    act(messages->miss_msg.victim_msg, FALSE, ch, ch->equipment[WIELD], victim, TO_VICT);
+                    act(messages->miss_msg.room_msg, FALSE, ch, ch->equipment[WIELD], victim, TO_NOTVICT);
+                }
+            }
+        }
+    }
 
-	if ((attacktype >= TYPE_HIT) && (attacktype <= TYPE_SLASH)) {
-		if (!ch->equipment[WIELD]) {
-			dam_message(dam, ch, victim, TYPE_HIT);
-		} else {
-			dam_message(dam, ch, victim, attacktype);
-		}
-	} else {
+    switch (GET_POS(victim)) {
+        case POSITION_MORTALLYW:
+            act("$n is mortally wounded, and will die soon, if not aided.", TRUE, victim, 0, 0, TO_ROOM);
+            act("You are mortally wounded, and will die soon, if not aided.", FALSE, victim, 0, 0, TO_CHAR);
+            break;
+        case POSITION_INCAP:
+            act("$n is incapacitated and will slowly die, if not aided.", TRUE, victim, 0, 0, TO_ROOM);
+            act("You are incapacitated and will slowly die, if not aided.", FALSE, victim, 0, 0, TO_CHAR);
+            break;
+        case POSITION_STUNNED:
+            act("$n is stunned, but will probably regain conscience again.", TRUE, victim, 0, 0, TO_ROOM);
+            act("You're stunned, but will probably regain conscience again.", FALSE, victim, 0, 0, TO_CHAR);
+            break;
+        case POSITION_DEAD:
+            act("$n is dead! R.I.P.", TRUE, victim, 0, 0, TO_ROOM);
+            act("You are dead!  Sorry...", FALSE, victim, 0, 0, TO_CHAR);
+            break;
+        default:  /* >= POSITION SLEEPING */
+            max_hit = hit_limit(victim);
 
-	for(i = 0; i < MAX_MESSAGES; i++) {
-		if (fight_messages[i].a_type == attacktype) {
-			nr=dice(1,fight_messages[i].number_of_attacks);
-			for(j=1,messages=fight_messages[i].msg;(j<nr)&&(messages);j++)
-				messages=messages->next;
+            if (dam > (max_hit / 5)) {
+                act("That Really did HURT!", FALSE, victim, 0, 0, TO_CHAR);
+            }
 
-			if (!IS_NPC(victim) && (GET_LEVEL(victim) > 20)) {
-				act(messages->god_msg.attacker_msg, FALSE, ch, ch->equipment[WIELD], victim, TO_CHAR);
-				act(messages->god_msg.victim_msg, FALSE, ch, ch->equipment[WIELD], victim, TO_VICT);
-				act(messages->god_msg.room_msg, FALSE, ch, ch->equipment[WIELD], victim, TO_NOTVICT);
-			} else if (dam != 0) {
-				if (GET_POS(victim) == POSITION_DEAD) {
-					act(messages->die_msg.attacker_msg, FALSE, ch, ch->equipment[WIELD], victim, TO_CHAR);
-					act(messages->die_msg.victim_msg, FALSE, ch, ch->equipment[WIELD], victim, TO_VICT);
-					act(messages->die_msg.room_msg, FALSE, ch, ch->equipment[WIELD], victim, TO_NOTVICT);
-				} else {
-					act(messages->hit_msg.attacker_msg, FALSE, ch, ch->equipment[WIELD], victim, TO_CHAR);
-					act(messages->hit_msg.victim_msg, FALSE, ch, ch->equipment[WIELD], victim, TO_VICT);
-					act(messages->hit_msg.room_msg, FALSE, ch, ch->equipment[WIELD], victim, TO_NOTVICT);
-				}
-			} else { /* Dam == 0 */
-				act(messages->miss_msg.attacker_msg, FALSE, ch, ch->equipment[WIELD], victim, TO_CHAR);
-				act(messages->miss_msg.victim_msg, FALSE, ch, ch->equipment[WIELD], victim, TO_VICT);
-				act(messages->miss_msg.room_msg, FALSE, ch, ch->equipment[WIELD], victim, TO_NOTVICT);
-			}
-		}
-	}
-	}
-	switch (GET_POS(victim)) {
-		case POSITION_MORTALLYW:
-			act("$n is mortally wounded, and will die soon, if not aided.", TRUE, victim, 0, 0, TO_ROOM);
-			act("You are mortally wounded, and will die soon, if not aided.", FALSE, victim, 0, 0, TO_CHAR);
-			break;
-		case POSITION_INCAP:
-			act("$n is incapacitated and will slowly die, if not aided.", TRUE, victim, 0, 0, TO_ROOM);
-			act("You are incapacitated an will slowly die, if not aided.", FALSE, victim, 0, 0, TO_CHAR);
-			break;
-		case POSITION_STUNNED:
-			act("$n is stunned, but will probably regain conscience again.", TRUE, victim, 0, 0, TO_ROOM);
-			act("You're stunned, but will probably regain conscience again.", FALSE, victim, 0, 0, TO_CHAR);
-			break;
-		case POSITION_DEAD:
-			act("$n is dead! R.I.P.", TRUE, victim, 0, 0, TO_ROOM);
-			act("You are dead!  Sorry...", FALSE, victim, 0, 0, TO_CHAR);
-			break;
+            if (GET_HIT(victim) < (max_hit / 5)) {
+                act("You wish that your wounds would stop BLEEDING that much!", FALSE, victim, 0, 0, TO_CHAR);
+                if (IS_NPC(victim)) {
+                    if (IS_SET(victim->specials.act, ACT_WIMPY)) {
+                        do_flee(victim, "", 0);
+                    }
+                }
+            }
+            break;
+    }
 
-		default:  /* >= POSITION SLEEPING */
+    if (!IS_NPC(victim) && !(victim->desc)) {
+        do_flee(victim, "", 0);
+        if (!victim->specials.fighting) {
+            act("$n is rescued by divine forces.", FALSE, victim, 0, 0, TO_ROOM);
+            victim->specials.was_in_room = victim->in_room;
+            char_from_room(victim);
+            char_to_room(victim, 0);
+        }
+    }
 
-			max_hit=hit_limit(victim);
+    if (GET_POS(victim) < POSITION_STUNNED) {
+        if (ch->specials.fighting == victim) {
+            stop_fighting(ch);
+        }
+    }
 
-			if (dam > (max_hit/5))
-				act("That Really did HURT!",FALSE, victim, 0, 0, TO_CHAR);
+    if (!AWAKE(victim)) {
+        if (victim->specials.fighting) {
+            stop_fighting(victim);
+        }
+    }
 
-			if (GET_HIT(victim) < (max_hit/5)) {
-
-				act("You wish that your wounds would stop BLEEDING that much!",FALSE,victim,0,0,TO_CHAR);
-				if (IS_NPC(victim))
-					if (IS_SET(victim->specials.act, ACT_WIMPY))
-						do_flee(victim, "", 0);
-			}
-			break;		
-	}
-
-	if (!IS_NPC(victim) && !(victim->desc)) {
-		do_flee(victim, "", 0);
-		if (!victim->specials.fighting) {
-			act("$n is rescued by divine forces.", FALSE, victim, 0, 0, TO_ROOM);
-			victim->specials.was_in_room = victim->in_room;
-			char_from_room(victim);
-			char_to_room(victim, 0);
-		}
-	}
-
-	if (GET_POS(victim) < POSITION_STUNNED)
-		if (ch->specials.fighting == victim)
-			stop_fighting(ch);
-
-	if (!AWAKE(victim))
-		if (victim->specials.fighting)
-			stop_fighting(victim);
-
-	if (GET_POS(victim) == POSITION_DEAD) {
-		if (IS_NPC(victim) || victim->desc)
-			if (IS_AFFECTED(ch, AFF_GROUP)) {
-					group_gain(ch, victim);
-			} else {
-				/* Calculate level-difference bonus */
-				exp = GET_EXP(victim)/3;
-				if (IS_NPC(ch))
-					exp += (exp*MIN(4, (GET_LEVEL(victim) - GET_LEVEL(ch))))>>3;
-				else
-					exp += (exp*MIN(8, (GET_LEVEL(victim) - GET_LEVEL(ch))))>>3;
-				exp = MAX(exp, 1);
-				gain_exp(ch, exp);
-				change_alignment(ch, victim);
-			}
-		if (!IS_NPC(victim)) {
-			sprintf(buf, "%s killed by %s at %s",
-				GET_NAME(victim),
-				(IS_NPC(ch) ? ch->player.short_descr : GET_NAME(ch)),
-				world[victim->in_room].name);
-			slog(buf);
-		}
-		die(victim);
-	}
+    if (GET_POS(victim) == POSITION_DEAD) {
+        if (IS_NPC(victim) || victim->desc) {
+            if (IS_AFFECTED(ch, AFF_GROUP)) {
+                group_gain(ch, victim);
+            } else {
+                /* Calculate level-difference bonus */
+                exp = GET_EXP(victim) / 3;
+                if (IS_NPC(ch)) {
+                    exp += (exp * MIN(4, (GET_LEVEL(victim) - GET_LEVEL(ch)))) >> 3;
+                } else {
+                    exp += (exp * MIN(8, (GET_LEVEL(victim) - GET_LEVEL(ch)))) >> 3;
+                }
+                exp = MAX(exp, 1);
+                gain_exp(ch, exp);
+                change_alignment(ch, victim);
+            }
+        }
+        if (!IS_NPC(victim)) {
+            sprintf(buf, "%s killed by %s at %s",
+                    GET_NAME(victim),
+                    (IS_NPC(ch) ? ch->player.short_descr : GET_NAME(ch)),
+                    world[victim->in_room].name);
+            slog(buf);
+        }
+        die(victim);
+    }
 }
-
 
 
 void hit(struct char_data *ch, struct char_data *victim, int type)

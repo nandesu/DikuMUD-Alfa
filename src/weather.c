@@ -7,12 +7,12 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "structs.h"
-#include "utils.h"
-#include "comm.h"
-#include "handler.h"
-#include "interpreter.h"
-#include "db.h"
+#include "include/structs.h"
+#include "include/utils.h"
+#include "include/comm.h"
+#include "include/handler.h"
+#include "include/interpreter.h"
+#include "include/db.h"
 
 /* uses */
 

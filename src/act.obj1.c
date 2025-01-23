@@ -7,13 +7,13 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "structs.h"
-#include "utils.h"
-#include "comm.h"
-#include "interpreter.h"
-#include "handler.h"
-#include "db.h"
-#include "spells.h"
+#include "include/structs.h"
+#include "include/utils.h"
+#include "include/comm.h"
+#include "include/interpreter.h"
+#include "include/handler.h"
+#include "include/db.h"
+#include "include/spells.h"
 
 /* extern variables */
 

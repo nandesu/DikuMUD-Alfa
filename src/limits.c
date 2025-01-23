@@ -7,11 +7,11 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
-#include "structs.h"
-#include "limits.h"
-#include "utils.h"
-#include "spells.h"
-#include "comm.h"
+#include "include/structs.h"
+#include "include/limits.h"
+#include "include/utils.h"
+#include "include/spells.h"
+#include "include/comm.h"
 
 #define READ_TITLE(ch) \
    ( GET_SEX(ch) == SEX_MALE ? \

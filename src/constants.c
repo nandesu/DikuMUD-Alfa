@@ -4,8 +4,8 @@
 *  Copyright (C) 1990, 1991 - see 'license.doc' for complete information. *
 ************************************************************************* */
 
-#include "structs.h"
-#include "limits.h"
+#include "include/structs.h"
+#include "include/limits.h"
 
 
 const char *spell_wear_off_msg[] = {

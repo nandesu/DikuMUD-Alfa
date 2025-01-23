@@ -9,12 +9,12 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <crypt.h>
-#include "structs.h"
-#include "comm.h"
-#include "interpreter.h"
-#include "db.h"
-#include "utils.h"
-#include "limits.h"
+#include "include/structs.h"
+#include "include/comm.h"
+#include "include/interpreter.h"
+#include "include/db.h"
+#include "include/utils.h"
+#include "include/limits.h"
 
 #define COMMANDO(number,min_pos,pointer,min_level) {      \
 	cmd_info[(number)].command_pointer = (pointer);         \

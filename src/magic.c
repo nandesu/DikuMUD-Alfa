@@ -7,12 +7,12 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
-#include "structs.h"
-#include "utils.h"
-#include "comm.h"
-#include "spells.h"
-#include "handler.h"
-#include "limits.h"
+#include "include/structs.h"
+#include "include/utils.h"
+#include "include/comm.h"
+#include "include/spells.h"
+#include "include/handler.h"
+#include "include/limits.h"
 
 /* Extern structures */
 extern struct room_data *world;

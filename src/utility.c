@@ -7,10 +7,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
-
-#include "structs.h"
 #include <time.h>
-#include "utils.h"
+
+#include "include/structs.h"
+#include "include/utils.h"
 
 extern struct time_data time_info;
 

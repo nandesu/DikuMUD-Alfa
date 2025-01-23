@@ -8,14 +8,14 @@
 #include <string.h>
 #include <ctype.h>
 
-#include "structs.h"
-#include "utils.h"
-#include "comm.h"
-#include "interpreter.h"
-#include "handler.h"
-#include "db.h"
-#include "spells.h"
-#include "limits.h"
+#include "include/structs.h"
+#include "include/utils.h"
+#include "include/comm.h"
+#include "include/interpreter.h"
+#include "include/handler.h"
+#include "include/db.h"
+#include "include/spells.h"
+#include "include/limits.h"
 
 /*   external vars  */
 
@@ -1325,98 +1325,88 @@ void do_start(struct char_data *ch)
 }
 
 
-void do_advance(struct char_data *ch, char *argument, int cmd)
-{
-	struct char_data *victim;
-	char name[100], level[100], buf[240];
-	int adv, newlevel;
+void do_advance(struct char_data *ch, char *argument, int cmd) {
+    struct char_data *victim;
+    char name[100], level[100], buf[240];
+    int adv, newlevel = 0; // Initialize newlevel to 0
 
-	void gain_exp(struct char_data *ch, int gain);
+    void gain_exp(struct char_data *ch, int gain);
 
-	if (IS_NPC(ch))
-		return;
+    if (IS_NPC(ch))
+        return;
 
-	argument_interpreter(argument, name, level);
+    argument_interpreter(argument, name, level);
 
-	if (*name)
-	{
-		if (!(victim = get_char_room_vis(ch, name)))
-		{
-			send_to_char("That player is not here.\n\r", ch);
-			return;
-		}
-	} else {
-		send_to_char("Advance who?\n\r", ch);
-		return;
-	}
+    if (*name) {
+        if (!(victim = get_char_room_vis(ch, name))) {
+            send_to_char("That player is not here.\n\r", ch);
+            return;
+        }
+    } else {
+        send_to_char("Advance who?\n\r", ch);
+        return;
+    }
 
-	if (IS_NPC(victim)) {
-		send_to_char("NO! Not on NPC's.\n\r", ch);
-		return;
-	}
+    if (IS_NPC(victim)) {
+        send_to_char("NO! Not on NPC's.\n\r", ch);
+        return;
+    }
 
-	if (GET_LEVEL(victim) == 0)
-		adv = 1;
-	else if (!*level) {
-		send_to_char("You must supply a level number.\n\r", ch);
-		return;
-	} else {
-		if (!isdigit(*level))
-		{
-			send_to_char("Second argument must be a positive integer.\n\r",ch);
-			return;
-		}
-		if ((newlevel = atoi(level)) <= GET_LEVEL(victim))
-		{
-			send_to_char("Can't dimish a players status (yet).\n\r", ch);
-			return;
-		}
-		adv = newlevel - GET_LEVEL(victim);
-	}
+    if (GET_LEVEL(victim) == 0) {
+        adv = 1;
+    } else if (!*level) {
+        send_to_char("You must supply a level number.\n\r", ch);
+        return;
+    } else {
+        if (!isdigit(*level)) {
+            send_to_char("Second argument must be a positive integer.\n\r", ch);
+            return;
+        }
+        if ((newlevel = atoi(level)) <= GET_LEVEL(victim)) {
+            send_to_char("Can't diminish a player's status (yet).\n\r", ch);
+            return;
+        }
+        adv = newlevel - GET_LEVEL(victim);
+    }
 
-	if (((adv + GET_LEVEL(victim)) > 1) && (GET_LEVEL(ch) < 24))
-	{
-		send_to_char("Thou art not godly enough.\n\r", ch);
-		return;
-	}
+    if (((adv + GET_LEVEL(victim)) > 1) && (GET_LEVEL(ch) < 24)) {
+        send_to_char("Thou art not godly enough.\n\r", ch);
+        return;
+    }
 
-	if ((adv + GET_LEVEL(victim)) > 24)
-	{
-		send_to_char("24 is the highest possible level.\n\r", ch);
-		return;
-	}
+    if ((adv + GET_LEVEL(victim)) > 24) {
+        send_to_char("24 is the highest possible level.\n\r", ch);
+        return;
+    }
 
-	if (((adv + GET_LEVEL(victim)) < 21)&&((adv + GET_LEVEL(victim)) != 1))
-	{
-		send_to_char("21 is the lowest possible level.\n\r", ch);
-		return;
-	}
+    if (((adv + GET_LEVEL(victim)) < 21) && ((adv + GET_LEVEL(victim)) != 1)) {
+        send_to_char("21 is the lowest possible level.\n\r", ch);
+        return;
+    }
 
-	send_to_char("You feel generous.\n\r", ch);
-	act("$n makes some strange gestures.\n\rA strange feeling comes uppon you,"
-		 "\n\rLike a giant hand, light comes down from\n\rabove, grabbing your "
-		 "body, that begins\n\rto pulse with coloured lights from inside.\n\rYo"
-		 "ur head seems to be filled with deamons\n\rfrom another plane as your"
-		 " body dissolves\n\rto the elements of time and space itself.\n\rSudde"
-		 "nly a silent explosion of light snaps\n\ryou back to reality. You fee"
-		 "l slightly\n\rdifferent.",FALSE,ch,0,victim,TO_VICT);
+    send_to_char("You feel generous.\n\r", ch);
+    act("$n makes some strange gestures.\n\rA strange feeling comes upon you,"
+        "\n\rLike a giant hand, light comes down from\n\rabove, grabbing your "
+        "body, that begins\n\rto pulse with colored lights from inside.\n\rYo"
+        "ur head seems to be filled with demons\n\rfrom another plane as your"
+        " body dissolves\n\rto the elements of time and space itself.\n\rSudde"
+        "nly a silent explosion of light snaps\n\ryou back to reality. You fee"
+        "l slightly\n\rdifferent.", FALSE, ch, 0, victim, TO_VICT);
 
-	sprintf(buf,"%s advances %s to level %d.",GET_NAME(ch),GET_NAME(victim),newlevel);
-	slog(buf);
+    sprintf(buf, "%s advances %s to level %d.", GET_NAME(ch), GET_NAME(victim), newlevel);
+    slog(buf);
 
-	if (GET_LEVEL(victim) == 0) {
-		do_start(victim);
-	} else {
-		if (GET_LEVEL(victim) < 24) {
-			gain_exp_regardless(victim, (titles[GET_CLASS(victim)-1][
-				GET_LEVEL(victim)+adv].exp)-GET_EXP(victim));
-			send_to_char("WARNING! Was not level 0.\n\r", ch);
-		} else {
-			send_to_char("Some idiot just tried to advance your level.\n\r",
-				victim);
-			send_to_char("IMPOSSIBLE! IDIOTIC!\n\r", ch);
-		}
-	}
+    if (GET_LEVEL(victim) == 0) {
+        do_start(victim);
+    } else {
+        if (GET_LEVEL(victim) < 24) {
+            gain_exp_regardless(victim, (titles[GET_CLASS(victim) - 1][GET_LEVEL(victim) + adv].exp) - GET_EXP(victim));
+            send_to_char("WARNING! Was not level 0.\n\r", ch);
+        } else {
+            send_to_char("Some idiot just tried to advance your level.\n\r", victim);
+            send_to_char("IMPOSSIBLE! IDIOTIC!\n\r", ch);
+        }
+    }
 }
 
 

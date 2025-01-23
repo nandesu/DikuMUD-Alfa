@@ -2,9 +2,9 @@
 #include <stdio.h>
 #include <ctype.h>
 
-#include "utils.h"
-#include "structs.h"
-#include "comm.h"
+#include "include/utils.h"
+#include "include/structs.h"
+#include "include/comm.h"
 
 
 #define MAX_MSGS 50	               /* Max number of messages.          */

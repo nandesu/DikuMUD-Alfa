@@ -8,13 +8,13 @@
 #include <sys/time.h>
 #include <string.h>
 
-#include "structs.h"
-#include "comm.h"
-#include "handler.h"
-#include "db.h"
-#include "interpreter.h"
-#include "utils.h"
-#include "spells.h"
+#include "include/structs.h"
+#include "include/comm.h"
+#include "include/handler.h"
+#include "include/db.h"
+#include "include/interpreter.h"
+#include "include/utils.h"
+#include "include/spells.h"
 
 #define OBJ_SAVE_FILE "pcobjs.obj"
 #define OBJ_FILE_FREE "\0\0\0"

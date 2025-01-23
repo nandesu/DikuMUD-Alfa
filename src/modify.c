@@ -10,12 +10,12 @@
 #include <string.h>
 #include <time.h>
 
-#include "structs.h"
-#include "utils.h"
-#include "interpreter.h"
-#include "handler.h"
-#include "db.h"
-#include "comm.h"
+#include "include/structs.h"
+#include "include/utils.h"
+#include "include/interpreter.h"
+#include "include/handler.h"
+#include "include/db.h"
+#include "include/comm.h"
 
 #define REBOOT_AT    10  /* 0-23, time of optional reboot if -e lib/reboot */
 
@@ -71,101 +71,86 @@ char *skill_fields[] =
 ************************************************************************ */
 
 /* Add user input to the 'current' string (as defined by d->str) */
-void string_add(struct descriptor_data *d, char *str)
+void string_add(struct descriptor_data *d, char *str) 
 {
-	char *scan;
-	int terminator = 0;
+    char *scan;
+    int terminator = 0;
 
-	/* determine if this is the terminal string, and truncate if so */
-	for (scan = str; *scan; scan++)
-	   if (terminator = (*scan == '@'))
-	   {
-			*scan = '\0';
-			break;
-	   }
-	
-	if (!(*d->str))
-	{
-		if (strlen(str) > d->max_str)
-		{
-			send_to_char("String too long - Truncated.\n\r",
-			   d->character);
-			*(str + d->max_str) = '\0';
-			terminator = 1;
-		}
-		CREATE(*d->str, char, strlen(str) + 3);
-		strcpy(*d->str, str);
-	}
-	else
-	{
-		if (strlen(str) + strlen(*d->str) > d->max_str)
-		{
-			send_to_char("String too long. Last line skipped.\n\r",
-			   d->character);
-			terminator = 1;
-		}
-		else 
-		{
-			if (!(*d->str = (char *) realloc(*d->str, strlen(*d->str) + 
-		   	strlen(str) + 3)))
-			{
-				perror("string_add");
-				exit(1);
-			}
-			strcat(*d->str, str);
-		}
-	}
+    /* determine if this is the terminal string, and truncate if so */
+    for (scan = str; *scan; scan++) {
+        if ((terminator = (*scan == '@'))) {
+            *scan = '\0';
+            break;
+        }
+    }
 
-	if (terminator)
-	{
-		d->str = 0;
-		if (d->connected == CON_EXDSCR)
-		{
-			SEND_TO_Q(MENU, d);
-			d->connected = CON_SLCT;
-		}
-	}
-	else
-	   strcat(*d->str, "\n\r");
+    if (!(*d->str)) {
+        if (strlen(str) > d->max_str) {
+            send_to_char("String too long - Truncated.\n\r", d->character);
+            *(str + d->max_str) = '\0';
+            terminator = 1;
+        }
+        CREATE(*d->str, char, strlen(str) + 3);
+        strcpy(*d->str, str);
+    } else {
+        if (strlen(str) + strlen(*d->str) > d->max_str) {
+            send_to_char("String too long. Last line skipped.\n\r", d->character);
+            terminator = 1;
+        } else {
+            if (!(*d->str = (char *) realloc(*d->str, strlen(*d->str) + strlen(str) + 3))) {
+                perror("string_add");
+                exit(1);
+            }
+            strcat(*d->str, str);
+        }
+    }
+
+    if (terminator) {
+        d->str = 0;
+        if (d->connected == CON_EXDSCR) {
+            SEND_TO_Q(MENU, d);
+            d->connected = CON_SLCT;
+        }
+    } else {
+        strcat(*d->str, "\n\r");
+    }
 }
 
 
 #undef MAX_STR
 
 /* interpret an argument for do_string */
-void quad_arg(char *arg, int *type, char *name, int *field, char *string)
+void quad_arg(char *arg, int *type, char *name, int *field, char *string) 
 {
-	char buf[MAX_STRING_LENGTH];
-	int i;
+    char buf[MAX_STRING_LENGTH];
+    int i;
 
-	/* determine type */
-	arg = one_argument(arg, buf);
-	if (is_abbrev(buf, "char"))
-	   *type = TP_MOB;
-	else if (is_abbrev(buf, "obj"))
-	   *type = TP_OBJ;
-	else
-	{
-		*type = TP_ERROR;
-		return;
-	}
+    /* determine type */
+    arg = one_argument(arg, buf);
+    if (is_abbrev(buf, "char")) {
+        *type = TP_MOB;
+    } else if (is_abbrev(buf, "obj")) {
+        *type = TP_OBJ;
+    } else {
+        *type = TP_ERROR;
+        return;
+    }
 
-	/* find name */
-	arg = one_argument(arg, name);
+    /* find name */
+    arg = one_argument(arg, name);
 
-	/* field name and number */
-	arg = one_argument(arg, buf);
-	if (!(*field = old_search_block(buf, 0, strlen(buf), string_fields, 0)))
-	   return;
+    /* field name and number */
+    arg = one_argument(arg, buf);
+    if (!(*field = old_search_block(buf, 0, strlen(buf), string_fields, 0))) {
+        return;
+    }
 
-	/* string */
-	for (; isspace(*arg); arg++);
-	for (; *string = *arg; arg++, string++);
+    /* string */
+    for (; isspace(*arg); arg++);
+    for (; ( *string = *arg ); arg++, string++);
 
-	return;
+    return;
 }
-	
-	 
 
 
 /* modification of malloc'ed strings in chars/objects */
@@ -549,94 +534,89 @@ void show_string(struct descriptor_data *d, char *input)
 		}
 }
 
+void night_watchman(void) {
+    long tc;
+    struct tm *t_info;
 
+    extern int shutting_down;
 
+    void send_to_all(char *messg);
 
+    tc = time(0);
+    t_info = localtime(&tc);
 
-
-void night_watchman(void)
-{
-	long tc;
-	struct tm *t_info;
-
-	extern int shutting_down;
-
-	void send_to_all(char *messg);
-
-	tc = time(0);
-	t_info = localtime(&tc);
-
-	if ((t_info->tm_hour == 8) && (t_info->tm_wday > 0) &&
-		(t_info->tm_wday < 6))
-		if (t_info->tm_min > 50)
-		{
-			slog("Leaving the scene for the serious folks.");
-			send_to_all("Closing down. Thank you for flying DikuMUD.\n\r");
-			shutting_down = 1;
-		}
-		else if (t_info->tm_min > 40)
-			send_to_all("ATTENTION: DikuMUD will shut down in 10 minutes.\n\r");
-		else if (t_info->tm_min > 30)
-			send_to_all("Warning: The game will close in 20 minutes.\n\r");
+    if ((t_info->tm_hour == 8) && (t_info->tm_wday > 0) && (t_info->tm_wday < 6)) {
+        if (t_info->tm_min > 50) {
+            slog("Leaving the scene for the serious folks.");
+            send_to_all("Closing down. Thank you for flying DikuMUD.\n\r");
+            shutting_down = 1;
+        } else if (t_info->tm_min > 40) {
+            send_to_all("ATTENTION: DikuMUD will shut down in 10 minutes.\n\r");
+        } else if (t_info->tm_min > 30) {
+            send_to_all("Warning: The game will close in 20 minutes.\n\r");
+        }
+    }
 }
 
-	
-void check_reboot(void)
-{
-	long tc;
-	struct tm *t_info;
-	char dummy;
-	FILE *boot;
+void check_reboot(void) {
+    long tc;
+    struct tm *t_info;
+    char dummy;
+    FILE *boot;
 
-	extern int shutting_down, reboot;
+    extern int shutting_down, reboot;
 
-	tc = time(0);
-	t_info = localtime(&tc);
+    tc = time(0);
+    t_info = localtime(&tc);
 
-	if ((t_info->tm_hour + 1) == REBOOT_AT && t_info->tm_min > 30)
-		if (boot = fopen("./reboot", "r"))
-		{
-			if (t_info->tm_min > 50)
-			{
-				slog("Reboot exists.");
-				fread(&dummy, sizeof(dummy), 1, boot);
-				if (!feof(boot))   /* the file is nonepty */
-				{
-					slog("Reboot is nonempty.");
+    if ((t_info->tm_hour + 1) == REBOOT_AT && t_info->tm_min > 30) {
+        if ((boot = fopen("./reboot", "r"))) {
+            if (t_info->tm_min > 50) {
+                slog("Reboot exists.");
+                fread(&dummy, sizeof(dummy), 1, boot);
+                if (!feof(boot)) {   /* the file is nonempty */
+                    slog("Reboot is nonempty.");
 
-					/* the script can't handle the signals */
-					sigsetmask(sigmask(SIGUSR1) | sigmask(SIGUSR2) |
-					sigmask(SIGINT) |	sigmask(SIGPIPE) | sigmask(SIGALRM) |
-					sigmask(SIGTERM) | sigmask(SIGURG) | sigmask(SIGXCPU) |
-					sigmask(SIGHUP) |	sigmask(SIGVTALRM));
+                    /* the script can't handle the signals */
+                    sigset_t newmask, oldmask;
+                    sigemptyset(&newmask);
+                    sigaddset(&newmask, SIGUSR1);
+                    sigaddset(&newmask, SIGUSR2);
+                    sigaddset(&newmask, SIGINT);
+                    sigaddset(&newmask, SIGPIPE);
+                    sigaddset(&newmask, SIGALRM);
+                    sigaddset(&newmask, SIGTERM);
+                    sigaddset(&newmask, SIGURG);
+                    sigaddset(&newmask, SIGXCPU);
+                    sigaddset(&newmask, SIGHUP);
+                    sigaddset(&newmask, SIGVTALRM);
+                    sigprocmask(SIG_BLOCK, &newmask, &oldmask);
 
-					if (system("./reboot"))
-					{
-						slog("Reboot script terminated abnormally");
-						send_to_all("The reboot was cancelled.\n\r");
-						system("mv ./reboot reboot.FAILED");
-						fclose(boot);
-						sigsetmask(0);
-						return;
-					}
-					else
-						system("mv ./reboot reboot.SUCCEEDED");
-					sigsetmask(0);
-				}
+                    if (system("./reboot")) {
+                        slog("Reboot script terminated abnormally");
+                        send_to_all("The reboot was cancelled.\n\r");
+                        system("mv ./reboot reboot.FAILED");
+                        fclose(boot);
+                        sigprocmask(SIG_SETMASK, &oldmask, NULL);
+                        return;
+                    } else {
+                        system("mv ./reboot reboot.SUCCEEDED");
+                    }
+                    sigprocmask(SIG_SETMASK, &oldmask, NULL);
+                }
 
-				send_to_all("Automatic reboot. Come back in a little while.\n\r");
-				shutting_down = reboot = 1;
-			}
-			else if (t_info->tm_min > 40)
-				send_to_all("ATTENTION: DikuMUD will reboot in 10 minutes.\n\r");
-			else if (t_info->tm_min > 30)
-				send_to_all(
-					"Warning: The game will close and reboot in 20 minutes.\n\r");
+                send_to_all("Automatic reboot. Come back in a little while.\n\r");
+                shutting_down = reboot = 1;
+            } else if (t_info->tm_min > 40) {
+                send_to_all("ATTENTION: DikuMUD will reboot in 10 minutes.\n\r");
+            } else if (t_info->tm_min > 30) {
+                send_to_all("Warning: The game will close and reboot in 20 minutes.\n\r");
+            }
 
-			fclose(boot);
-		}
+            fclose(boot);
+        }
+    }
 }
-
 
 #define GR
 #define NEW

@@ -5,8 +5,8 @@
 ************************************************************************* */
 
 #include <stdio.h>
-#include "structs.h"
-#include "db.h"
+#include "include/structs.h"
+#include "include/db.h"
 
 extern struct room_data *world;
 extern struct index_data *mob_index;

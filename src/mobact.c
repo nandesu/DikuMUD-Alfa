@@ -6,10 +6,10 @@
 
 #include <stdio.h>
 
-#include "utils.h"
-#include "structs.h"
-#include "db.h"
-#include "comm.h"
+#include "include/utils.h"
+#include "include/structs.h"
+#include "include/db.h"
+#include "include/comm.h"
 
 extern struct char_data *character_list;
 extern struct index_data *mob_index;

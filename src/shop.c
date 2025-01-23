@@ -7,12 +7,12 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "structs.h"
-#include "comm.h"
-#include "handler.h"
-#include "db.h"
-#include "interpreter.h"
-#include "utils.h"
+#include "include/structs.h"
+#include "include/comm.h"
+#include "include/handler.h"
+#include "include/db.h"
+#include "include/interpreter.h"
+#include "include/utils.h"
 
 #define SHOP_FILE "tinyworld.shp"
 #define MAX_TRADE 5

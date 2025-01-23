@@ -7,13 +7,13 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "structs.h"
-#include "utils.h"
-#include "comm.h"
-#include "interpreter.h"
-#include "handler.h"
-#include "db.h"
-#include "spells.h"
+#include "include/structs.h"
+#include "include/utils.h"
+#include "include/comm.h"
+#include "include/interpreter.h"
+#include "include/handler.h"
+#include "include/db.h"
+#include "include/spells.h"
 
 /* extern variables */
 
@@ -322,24 +322,23 @@ void boot_pose_messages(void)
 	fclose(fl);
 }
 
+void do_pose(struct char_data *ch, char *argument, int cmd) {
+    byte to_pose;
+    byte counter;
 
-void do_pose(struct char_data *ch, char *argument, int cmd)
-{
-	byte to_pose;
-	byte counter;
+    if ((GET_LEVEL(ch) < pose_messages[0].level) || IS_NPC(ch)) {
+        send_to_char("You can't do that.\n\r", ch);
+        return;
+    }
 
-	if ((GET_LEVEL(ch) < pose_messages[0].level) || IS_NPC(ch))
-	{
-		send_to_char("You can't do that.\n\r", ch);
-		return;
-	}
+    for (counter = 0; (pose_messages[(unsigned char)counter].level <= GET_LEVEL(ch)) &&
+                     (pose_messages[(unsigned char)counter].level >= 0); counter++);
+    counter--;
 
-	for (counter = 0; (pose_messages[counter].level <= GET_LEVEL(ch)) && 
-                     (pose_messages[counter].level >= 0); counter++);
-	counter--;
-  
-	to_pose = number(0, counter);
-	
-	act(pose_messages[to_pose].poser_msg[GET_CLASS(ch)-1], 0, ch, 0, 0, TO_CHAR);
-	act(pose_messages[to_pose].room_msg[GET_CLASS(ch)-1], 0, ch, 0, 0, TO_ROOM);
+    to_pose = number(0, counter);
+
+    act(pose_messages[to_pose].poser_msg[GET_CLASS(ch)-1], 0, ch, 0, 0, TO_CHAR);
+    act(pose_messages[to_pose].room_msg[GET_CLASS(ch)-1], 0, ch, 0, 0, TO_ROOM);
 }
+
+/* EOF: act.social.c */
