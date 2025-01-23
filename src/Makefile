@@ -13,7 +13,7 @@ o_files = comm.o act.comm.o act.informative.o act.movement.o act.obj1.o act.obj2
 libgame.a: $(o_files)
 	ar rcs libgame.a $(o_files)
 	ranlib libgame.a
-	rm -f $(o_files)  # Delete the .o files after adding to the archive
+#	rm -f $(o_files)  # Delete the .o files after adding to the archive
 
 all: delplay dmserver
 
