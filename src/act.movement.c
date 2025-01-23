@@ -7,13 +7,13 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "structs.h"
-#include "utils.h"
-#include "comm.h"
-#include "interpreter.h"
-#include "handler.h"
-#include "db.h"
-#include "spells.h"
+#include "include/structs.h"
+#include "include/utils.h"
+#include "include/comm.h"
+#include "include/interpreter.h"
+#include "include/handler.h"
+#include "include/db.h"
+#include "include/spells.h"
 
 /*   external vars  */
 
@@ -225,73 +225,63 @@ int find_door(struct char_data *ch, char *type, char *dir)
 
 void do_open(struct char_data *ch, char *argument, int cmd)
 {
-	int door, other_room, bits;
-	char type[MAX_INPUT_LENGTH], dir[MAX_INPUT_LENGTH], buf[MAX_STRING_LENGTH];
-	struct room_direction_data *back;
-	struct obj_data *obj;
-	struct char_data *victim;
+    int door, other_room, bits;
+    char type[MAX_INPUT_LENGTH], dir[MAX_INPUT_LENGTH], buf[MAX_STRING_LENGTH];
+    struct room_direction_data *back;
+    struct obj_data *obj;
+    struct char_data *victim;
 
-	argument_interpreter(argument, type, dir);
+    argument_interpreter(argument, type, dir);
 
-	if (!*type)
-		send_to_char("Open what?\n\r", ch);
-	else if (generic_find(argument, FIND_OBJ_INV | FIND_OBJ_ROOM,
-		ch, &victim, &obj))
-
-		/* this is an object */
-
-		if (obj->obj_flags.type_flag != ITEM_CONTAINER)
-			send_to_char("That's not a container.\n\r", ch);
- 		else if (!IS_SET(obj->obj_flags.value[1], CONT_CLOSED))
-			send_to_char("But it's already open!\n\r", ch);
-		else if (!IS_SET(obj->obj_flags.value[1], CONT_CLOSEABLE))
-			send_to_char("You can't do that.\n\r", ch);
-		else if (IS_SET(obj->obj_flags.value[1], CONT_LOCKED))
-			send_to_char("It seems to be locked.\n\r", ch);
-		else
-		{
-			REMOVE_BIT(obj->obj_flags.value[1], CONT_CLOSED);
-			send_to_char("Ok.\n\r", ch);
-			act("$n opens $p.", FALSE, ch, obj, 0, TO_ROOM);
-		}
-	else if ((door = find_door(ch, type, dir)) >= 0)
-
-		/* perhaps it is a door */
-
-		if (!IS_SET(EXIT(ch, door)->exit_info, EX_ISDOOR))
-			send_to_char("That's impossible, I'm afraid.\n\r", ch);
-		else if (!IS_SET(EXIT(ch, door)->exit_info, EX_CLOSED))
-			send_to_char("It's already open!\n\r", ch);
-		else if (IS_SET(EXIT(ch, door)->exit_info, EX_LOCKED))
-			send_to_char("It seems to be locked.\n\r", ch);
-		else
-		{
-			REMOVE_BIT(EXIT(ch, door)->exit_info, EX_CLOSED);
-			if (EXIT(ch, door)->keyword)
-				act("$n opens the $F.", FALSE, ch, 0, EXIT(ch, door)->keyword,
-					TO_ROOM);
-			else
-				act("$n opens the door.", FALSE, ch, 0, 0, TO_ROOM);
-			send_to_char("Ok.\n\r", ch);
-			/* now for opening the OTHER side of the door! */
-			if ((other_room = EXIT(ch, door)->to_room) != NOWHERE)
-				if (back = world[other_room].dir_option[rev_dir[door]])	
-					if (back->to_room == ch->in_room)
-					{
-						REMOVE_BIT(back->exit_info, EX_CLOSED);
-						if (back->keyword)
-						{
-							sprintf(buf,
-								"The %s is opened from the other side.\n\r",
-								fname(back->keyword));
-							send_to_room(buf, EXIT(ch, door)->to_room);
-						}
-						else
-							send_to_room(
-							"The door is opened from the other side.\n\r",
-							EXIT(ch, door)->to_room);
-					}						 
-		}
+    if (!*type) {
+        send_to_char("Open what?\n\r", ch);
+    } else if (generic_find(argument, FIND_OBJ_INV | FIND_OBJ_ROOM, ch, &victim, &obj)) {
+        /* this is an object */
+        if (obj->obj_flags.type_flag != ITEM_CONTAINER) {
+            send_to_char("That's not a container.\n\r", ch);
+        } else if (!IS_SET(obj->obj_flags.value[1], CONT_CLOSED)) {
+            send_to_char("But it's already open!\n\r", ch);
+        } else if (!IS_SET(obj->obj_flags.value[1], CONT_CLOSEABLE)) {
+            send_to_char("You can't do that.\n\r", ch);
+        } else if (IS_SET(obj->obj_flags.value[1], CONT_LOCKED)) {
+            send_to_char("It seems to be locked.\n\r", ch);
+        } else {
+            REMOVE_BIT(obj->obj_flags.value[1], CONT_CLOSED);
+            send_to_char("Ok.\n\r", ch);
+            act("$n opens $p.", FALSE, ch, obj, 0, TO_ROOM);
+        }
+    } else if ((door = find_door(ch, type, dir)) >= 0) {
+        /* perhaps it is a door */
+        if (!IS_SET(EXIT(ch, door)->exit_info, EX_ISDOOR)) {
+            send_to_char("That's impossible, I'm afraid.\n\r", ch);
+        } else if (!IS_SET(EXIT(ch, door)->exit_info, EX_CLOSED)) {
+            send_to_char("It's already open!\n\r", ch);
+        } else if (IS_SET(EXIT(ch, door)->exit_info, EX_LOCKED)) {
+            send_to_char("It seems to be locked.\n\r", ch);
+        } else {
+            REMOVE_BIT(EXIT(ch, door)->exit_info, EX_CLOSED);
+            if (EXIT(ch, door)->keyword) {
+                act("$n opens the $F.", FALSE, ch, 0, EXIT(ch, door)->keyword, TO_ROOM);
+            } else {
+                act("$n opens the door.", FALSE, ch, 0, 0, TO_ROOM);
+            }
+            send_to_char("Ok.\n\r", ch);
+            /* now for opening the OTHER side of the door! */
+            if ((other_room = EXIT(ch, door)->to_room) != NOWHERE) {
+                if ((back = world[other_room].dir_option[rev_dir[door]])) {
+                    if (back->to_room == ch->in_room) {
+                        REMOVE_BIT(back->exit_info, EX_CLOSED);
+                        if (back->keyword) {
+                            sprintf(buf, "The %s is opened from the other side.\n\r", fname(back->keyword));
+                            send_to_room(buf, EXIT(ch, door)->to_room);
+                        } else {
+                            send_to_room("The door is opened from the other side.\n\r", EXIT(ch, door)->to_room);
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 
