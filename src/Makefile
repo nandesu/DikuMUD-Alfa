@@ -13,51 +13,18 @@ o_files = comm.o act.comm.o act.informative.o act.movement.o act.obj1.o act.obj2
 libgame.a: $(o_files)
 	ar rcs libgame.a $(o_files)
 	ranlib libgame.a
+	rm -f $(o_files)  # Delete the .o files after adding to the archive
 
 all: delplay dmserver
 
-dmserver: libgame.a
+dmserver: delplay.o libgame.a
 	$(CC) $(LDFLAGS) -o $@ $^ $(LOADLIBES) $(LDLIBS)
 
 delplay: delplay.o libgame.a
 	$(CC) $(LDFLAGS) -o $@ $^ $(LOADLIBES) $(LDLIBS)
 
-comm.o: comm.c $(h_files)
-act.comm.o: act.comm.c $(h_files)
-act.informative.o: act.informative.c $(h_files)
-act.movement.o: act.movement.c $(h_files)
-act.obj1.o: act.obj1.c $(h_files)
-act.obj2.o: act.obj2.c $(h_files)
-act.offensive.o: act.offensive.c $(h_files)
-act.other.o: act.other.c $(h_files)
-act.social.o: act.social.c $(h_files)
-act.wizard.o: act.wizard.c $(h_files)
-handler.o: handler.c $(h_files)
-db.o: db.c $(h_files)
-interpreter.o: interpreter.c $(h_files)
-utility.o: utility.c $(h_files)
-spec_assign.o: spec_assign.c $(h_files)
-spec_procs.o: spec_procs.c $(h_files)
-limits.o: limits.c $(h_files)
-fight.o: fight.c $(h_files)
-weather.o: weather.c $(h_files)
-shop.o: shop.c $(h_files)
-spells1.o: spells1.c $(h_files)
-spells2.o: spells2.c $(h_files)
-magic.o: spells2.c $(h_files)
-spell_parser.o: spell_parser.c $(h_files)
-mobact.o: mobact.c $(h_files)
-modify.o: modify.c $(h_files)
-reception.o: reception.c $(h_files)
-constants.o: constants.c $(h_files)
-board.o: board.c $(h_files)
-list.o: list.c $(h_files)
-signals.o: signals.c $(h_files)
-mar_fiz_maz.o: mar_fiz_maz.c $(h_files)
-changes.o: changes.c $(h_files)
-
-delplay.o: delplay.c include/structs.h
+%.o: %.c $(h_files)
+	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
 	rm -f *.o dmserver delplay libgame.a
-
